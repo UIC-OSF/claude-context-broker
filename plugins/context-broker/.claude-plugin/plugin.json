@@ -1,7 +1,7 @@
 {
   "name": "context-broker",
   "displayName": "Context Broker",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Keeps I/O-heavy large-file exploration out of Claude Code's primary context.",
   "author": {
     "name": "UIC Open Source Foundation"

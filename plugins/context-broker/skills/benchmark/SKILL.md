@@ -9,7 +9,7 @@ This spends real money: every run is a complete `claude -p` session, and the bro
    ```bash
    python3 ${CLAUDE_PLUGIN_ROOT}/bench/run.py --init
    ```
-2. **Write real tasks with the user.** Each task needs an `id`, a `prompt` that a fresh session can act on, `reset` commands that return the tree to a clean state (the default `git checkout -- . && git clean -fdq` is usually right), and `checks`: shell commands that exit 0 only if the task was done correctly. Aim for 3-5 tasks: a bug investigation, a small feature, a test addition, and one task where the broker should *not* help (small files). Optional per task: `max_turns`, `model`, `permission_mode`, or a `broker_prompt` to replace the default hint. Remove every `REPLACE ME`.
+2. **Write real tasks with the user.** Each task needs an `id`, a `prompt` that a fresh session can act on, `reset` commands that return the tree to a clean state (the default `git checkout -- . && git clean -fdq -e .context-broker -e .claude` is usually right; add `-e` for any other untracked directory the user wants kept, and confirm `git status` is clean before the first run because reset discards uncommitted work), and `checks`: shell commands that exit 0 only if the task was done correctly. Aim for 3-5 tasks: a bug investigation, a small feature, a test addition, and one task where the broker should *not* help (small files). Optional per task: `max_turns`, `model`, `permission_mode`, or a `broker_prompt` to replace the default hint. Remove every `REPLACE ME`.
 3. **Confirm the budget.** Tell the user: number of tasks x runs x 2 conditions = total sessions, and that the baseline condition runs with the hooks disabled. Recommend `--runs 3` for a first pass. Wait for an explicit yes.
 4. **Run both conditions:**
    ```bash
