@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Summarize matched runs; add blinded quality scores separately before deciding."""
+"""Summarise paired benchmark runs from run.py; add blinded quality scores separately before deciding."""
 from __future__ import annotations
 
 import argparse
@@ -23,7 +23,7 @@ def uncached_input(usage: dict) -> int:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--results", required=True)
+    parser.add_argument("--results", default=".context-broker/bench/results.jsonl")
     args = parser.parse_args()
     groups = defaultdict(list)
     with open(args.results) as source:

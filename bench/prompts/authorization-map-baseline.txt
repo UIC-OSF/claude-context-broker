@@ -1,1 +1,0 @@
-Trace authorization for course import. Search and read source as needed. Identify the entry point, checks, and any missing role check. Do not edit files.
