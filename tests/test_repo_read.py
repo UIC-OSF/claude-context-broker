@@ -35,7 +35,17 @@ class RepoReadTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         request = json.loads(result.stdout)["request"]
         self.assertEqual(request["files"][0]["path"], "example.py")
+        self.assertEqual(request["files"][0]["content"], "1| def hello():\n2|     return 'hi'")
+        self.assertEqual(request["files"][0]["lines"], 2)
+        self.assertTrue(request["line_numbered"])
         self.assertEqual(len(request["nonce"]), 16)
+
+    def test_line_numbers_are_width_padded(self):
+        self.write("long.py", "".join(f"x{i} = {i}\n" for i in range(1, 13)))
+        result = run(REPO_READ + ["--question", "q", "--paths", "long.py", "--dry-run"], self.root)
+        content = json.loads(result.stdout)["request"]["files"][0]["content"].splitlines()
+        self.assertEqual(content[0], " 1| x1 = 1")
+        self.assertEqual(content[11], "12| x12 = 12")
 
     def test_refuses_secret_named_files(self):
         for name in (".env", ".env.local", "credentials.json", "service-account-prod.json", "terraform.tfstate", "prod.tfvars", ".npmrc", ".netrc", "id_ecdsa", "server.pem"):
