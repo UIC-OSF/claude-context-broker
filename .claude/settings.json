@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/block-large-read.sh"
+            "command": "python3 ${CLAUDE_PROJECT_DIR}/plugins/context-broker/hooks/block-large-read.py"
           }
         ]
       },
@@ -15,7 +15,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/block-large-bash-read.sh"
+            "command": "python3 ${CLAUDE_PROJECT_DIR}/plugins/context-broker/hooks/block-large-bash-read.py"
           }
         ]
       }

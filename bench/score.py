@@ -8,8 +8,17 @@ from collections import defaultdict
 from statistics import mean
 
 
-def primary_tokens(usage: dict) -> int:
-    return sum(v for k, v in usage.items() if isinstance(v, int) and "token" in k)
+def primary_cost(row: dict) -> float:
+    return float(row.get("usage", {}).get("total_cost_usd") or 0.0)
+
+
+def worker_cost(row: dict) -> float:
+    return sum(float(w.get("total_cost_usd") or 0.0) for w in row.get("worker_usage", []))
+
+
+def uncached_input(usage: dict) -> int:
+    # Cache reads are billed at a fraction of input; do not add them to input tokens.
+    return int(usage.get("input_tokens") or 0) + int(usage.get("cache_creation_input_tokens") or 0)
 
 
 def main() -> int:
@@ -21,10 +30,18 @@ def main() -> int:
         for line in source:
             row = json.loads(line)
             groups[(row["task"], row["condition"])].append(row)
-    print("task\tcondition\truns\tcheck-pass-rate\tmean-seconds\tmean-primary-tokens")
+    print("task\tcondition\truns\tcheck-pass\tmean-sec\tuncached-in\tcache-read\tout\tprimary-usd\tworker-usd\ttotal-usd")
     for (task, condition), rows in sorted(groups.items()):
-        print(f"{task}\t{condition}\t{len(rows)}\t{mean(r['checks_passed'] for r in rows):.2%}\t{mean(r['elapsed_seconds'] for r in rows):.2f}\t{mean(primary_tokens(r['usage']) for r in rows):.0f}")
-    print("\nDecision rule: compare blinded quality scores first; reject the broker if quality falls beyond the preset margin. Then add worker-model cost to primary-model cost before evaluating savings.")
+        usages = [r.get("usage", {}) for r in rows]
+        primary = mean(primary_cost(r) for r in rows)
+        worker = mean(worker_cost(r) for r in rows)
+        print(
+            f"{task}\t{condition}\t{len(rows)}\t{mean(r['checks_passed'] for r in rows):.0%}\t{mean(r['elapsed_seconds'] for r in rows):.1f}"
+            f"\t{mean(uncached_input(u) for u in usages):.0f}\t{mean(int(u.get('cache_read_input_tokens') or 0) for u in usages):.0f}"
+            f"\t{mean(int(u.get('output_tokens') or 0) for u in usages):.0f}\t{primary:.4f}\t{worker:.4f}\t{primary + worker:.4f}"
+        )
+    print("\nDecision rule: compare blinded quality scores first; reject the broker if quality falls beyond the preset margin.")
+    print("Then compare total-usd (primary + worker). Token columns are informational; cost is the comparable figure.")
     return 0
 
 

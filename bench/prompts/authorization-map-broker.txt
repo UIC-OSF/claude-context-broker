@@ -1,1 +1,1 @@
-Trace authorization for course import. Search first. For broad exploration of large files, use bin/repo-read; verify consequential findings with targeted source reads. Identify the entry point, checks, and any missing role check. Do not edit files.
+Trace authorization for course import. Search first. For broad exploration of large files, use the context-broker bulk-reader skill; verify consequential findings with targeted source reads. Identify the entry point, checks, and any missing role check. Do not edit files.

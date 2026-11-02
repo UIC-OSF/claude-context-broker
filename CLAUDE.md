@@ -1,7 +1,7 @@
 # Context discipline
 
 - Search before reading.
-- For full-file reads above the configured threshold, run `bin/repo-read` with
+- For full-file reads above the configured threshold, use the context-broker bulk-reader skill (`repo-read`) with
   a precise question and explicit paths.
 - Treat `repo-read` as candidate evidence, not authority. Verify important
   findings with targeted reads before editing.
