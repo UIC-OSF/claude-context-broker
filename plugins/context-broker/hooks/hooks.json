@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/block-large-read.sh"
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/block-large-read.py"
           }
         ]
       },
@@ -15,7 +15,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/block-large-bash-read.sh"
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/block-large-bash-read.py"
           }
         ]
       }

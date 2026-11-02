@@ -1,29 +1,43 @@
 #!/usr/bin/env bash
-# Verify the plugin can intercept a large read without invoking a model.
+# Verify prerequisites and exercise the hooks directly, without invoking a model.
+# Note: this runs the hook scripts themselves. It confirms the scripts work, not
+# that Claude Code has registered them; for that, try a large Read in a session.
 set -euo pipefail
-
+root="${CLAUDE_PLUGIN_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 failed=0
 pass() { printf 'PASS  %s\n' "$1"; }
 fail() { printf 'FAIL  %s\n' "$1" >&2; failed=1; }
 
 command -v claude >/dev/null && pass "Claude Code is on PATH" || fail "Claude Code is not on PATH"
-command -v jq >/dev/null && pass "jq is on PATH" || fail "jq is required by the hooks"
+command -v python3 >/dev/null && pass "python3 is on PATH" || fail "python3 is required by the hooks and repo-read"
+command -v jq >/dev/null && pass "jq is on PATH" || fail "jq is required by the default worker"
 
 fixture_dir="$(mktemp -d)"
+trap 'rm -rf "$fixture_dir"' EXIT
 fixture="$fixture_dir/context-broker-check.txt"
-for i in $(seq 1 "${CONTEXT_BROKER_MIN_LINES:-750}"); do printf 'fixture line %s\n' "$i"; done > "$fixture"
-printf 'fixture line over threshold\n' >> "$fixture"
+threshold="${CONTEXT_BROKER_MIN_LINES:-750}"
+seq 1 $((threshold + 1)) | sed 's/^/fixture line /' > "$fixture"
 
-hook_output="$(printf '{"tool_input":{"file_path":"%s"}}' "$fixture" | "${CLAUDE_PLUGIN_ROOT}/hooks/block-large-read.sh" || true)"
-if printf '%s' "$hook_output" | jq -e '.hookSpecificOutput.permissionDecision == "deny"' >/dev/null 2>&1; then
-  pass "Large unbounded reads are blocked"
-else
-  fail "Large-read hook did not return a deny decision"
-fi
+decision() { python3 "$root/hooks/$1" <<<"$2" | python3 -c 'import json,sys; d=sys.stdin.read().strip(); print(json.loads(d)["hookSpecificOutput"]["permissionDecision"] if d else "allow")'; }
+case "$(decision block-large-read.py "{\"tool_input\":{\"file_path\":\"$fixture\"}}")" in
+  deny) pass "Full Read of a large file is denied" ;; *) fail "Full Read of a large file was not denied" ;;
+esac
+case "$(decision block-large-read.py "{\"tool_input\":{\"file_path\":\"$fixture\",\"offset\":0}}")" in
+  deny) pass "Read with offset but no bound is denied" ;; *) fail "offset-only Read bypassed the hook" ;;
+esac
+case "$(decision block-large-read.py "{\"tool_input\":{\"file_path\":\"$fixture\",\"offset\":10,\"limit\":100}}")" in
+  allow) pass "Bounded Read (offset+limit) is allowed" ;; *) fail "bounded Read was wrongly denied" ;;
+esac
+case "$(decision block-large-bash-read.py "{\"cwd\":\"$fixture_dir\",\"tool_input\":{\"command\":\"cat -n context-broker-check.txt\"}}")" in
+  deny) pass "Shell dump with flags and a relative path is denied" ;; *) fail "shell dump bypassed the hook" ;;
+esac
+case "$(decision block-large-bash-read.py "{\"cwd\":\"$fixture_dir\",\"tool_input\":{\"command\":\"head -n 50 context-broker-check.txt\"}}")" in
+  allow) pass "Bounded head is allowed" ;; *) fail "bounded head was wrongly denied" ;;
+esac
 
 if [[ "$failed" -eq 0 ]]; then
-  printf '\nContext Broker is ready. Run /context-broker:benchmark to estimate savings for a real question.\n'
+  printf '\nContext Broker scripts are working. /context-broker:benchmark reports a summary compression ratio, not a cost saving.\n'
 else
-  printf '\nFix the failed prerequisite(s), then run /context-broker:check again.\n' >&2
+  printf '\nFix the failed item(s), then run /context-broker:check again.\n' >&2
 fi
 exit "$failed"

@@ -9,4 +9,4 @@ Run:
 ${CLAUDE_PLUGIN_ROOT}/scripts/check
 ```
 
-Report only the result and any failed prerequisite. This check does not send repository source to a model and does not invoke a worker.
+Report only the result and any failed item. This exercises the hook scripts directly against fixtures (including known bypass shapes) and does not send repository source to a model. It confirms the scripts work, not that Claude Code has registered the hooks; to confirm registration, attempt a full Read of a file over the threshold in this session and expect a denial.
