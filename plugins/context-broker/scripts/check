@@ -36,7 +36,7 @@ case "$(decision block-large-bash-read.py "{\"cwd\":\"$fixture_dir\",\"tool_inpu
 esac
 
 if [[ "$failed" -eq 0 ]]; then
-  printf '\nContext Broker scripts are working. /context-broker:benchmark reports a summary compression ratio, not a cost saving.\n'
+  printf '\nContext Broker scripts are working. Run /context-broker:benchmark for a paired comparison before claiming savings.\n'
 else
   printf '\nFix the failed item(s), then run /context-broker:check again.\n' >&2
 fi

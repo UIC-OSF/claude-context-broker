@@ -1,5 +1,4 @@
 __pycache__/
 *.pyc
-bench/results.jsonl
-bench/tasks.json
+.context-broker/
 .env
