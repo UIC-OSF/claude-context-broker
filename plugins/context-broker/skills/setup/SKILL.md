@@ -6,9 +6,7 @@ description: "Explain or validate Context Broker's zero-config and managed-worke
 Context Broker works immediately after installation in zero-config mode. It invokes the locally authenticated Claude CLI with the `haiku` model for bulk exploration. Verify prerequisites with:
 
 ```bash
-command -v claude
-command -v jq
-${CLAUDE_PLUGIN_ROOT}/scripts/repo-read --question "What is this repository for?" --paths README.md
+${CLAUDE_PLUGIN_ROOT}/scripts/check
 ```
 
 Explain the tradeoff: zero-config reduces the primary session's context, but a flat Claude subscription may not reduce out-of-pocket cost. For controlled or lower-cost team routing, set `CONTEXT_BROKER_WORKER` to an approved command that accepts the documented JSON worker protocol on stdin and writes `{ "answer": "..." }` to stdout.

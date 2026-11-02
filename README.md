@@ -35,6 +35,11 @@ plugin hook redirects broad reads to a lower-cost Claude worker, while Claude
 Code retains judgment, targeted reads, edits, and review. Teams can replace the
 default worker with an approved gateway through `CONTEXT_BROKER_WORKER`.
 
+Two short commands cover normal evaluation:
+
+- `/context-broker:check` verifies installation, prerequisites, and hook behavior without sending source to a model.
+- `/context-broker:benchmark` identifies a few relevant large files and gives a quick context-volume estimate. It is intentionally a screening tool, not a billing or quality claim.
+
 ### Repository installation
 
 ```bash

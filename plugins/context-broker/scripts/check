@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Verify the plugin can intercept a large read without invoking a model.
+set -euo pipefail
+
+failed=0
+pass() { printf 'PASS  %s\n' "$1"; }
+fail() { printf 'FAIL  %s\n' "$1" >&2; failed=1; }
+
+command -v claude >/dev/null && pass "Claude Code is on PATH" || fail "Claude Code is not on PATH"
+command -v jq >/dev/null && pass "jq is on PATH" || fail "jq is required by the hooks"
+
+fixture_dir="$(mktemp -d)"
+fixture="$fixture_dir/context-broker-check.txt"
+for i in $(seq 1 "${CONTEXT_BROKER_MIN_LINES:-750}"); do printf 'fixture line %s\n' "$i"; done > "$fixture"
+printf 'fixture line over threshold\n' >> "$fixture"
+
+hook_output="$(printf '{"tool_input":{"file_path":"%s"}}' "$fixture" | "${CLAUDE_PLUGIN_ROOT}/hooks/block-large-read.sh" || true)"
+if printf '%s' "$hook_output" | jq -e '.hookSpecificOutput.permissionDecision == "deny"' >/dev/null 2>&1; then
+  pass "Large unbounded reads are blocked"
+else
+  fail "Large-read hook did not return a deny decision"
+fi
+
+if [[ "$failed" -eq 0 ]]; then
+  printf '\nContext Broker is ready. Run /context-broker:benchmark to estimate savings for a real question.\n'
+else
+  printf '\nFix the failed prerequisite(s), then run /context-broker:check again.\n' >&2
+fi
+exit "$failed"

@@ -1,0 +1,56 @@
+#!/usr/bin/env python3
+"""Quick Context Broker estimate: source volume versus summary context volume."""
+from __future__ import annotations
+
+import argparse
+import os
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+
+def estimate_tokens(byte_count: int) -> int:
+    # A deliberately conservative, model-agnostic proxy. This is not billing data.
+    return max(1, round(byte_count / 4))
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--question", required=True)
+    parser.add_argument("--paths", nargs="+", required=True)
+    args = parser.parse_args()
+
+    missing = [value for value in args.paths if not Path(value).is_file()]
+    if missing:
+        print(f"benchmark: not regular files: {', '.join(missing)}", file=sys.stderr)
+        return 2
+    source_bytes = sum(Path(value).stat().st_size for value in args.paths)
+    command = [f"{os.environ['CLAUDE_PLUGIN_ROOT']}/scripts/repo-read", "--question", args.question, "--paths", *args.paths]
+    began = time.monotonic()
+    result = subprocess.run(command, text=True, capture_output=True)
+    elapsed = time.monotonic() - began
+    if result.returncode:
+        print(result.stderr.strip() or "benchmark: worker failed", file=sys.stderr)
+        return result.returncode
+    summary_bytes = len(result.stdout.encode())
+    baseline_tokens = estimate_tokens(source_bytes)
+    broker_tokens = estimate_tokens(summary_bytes)
+    avoided = max(0, baseline_tokens - broker_tokens)
+    saving = (avoided / baseline_tokens * 100) if baseline_tokens else 0
+
+    print("Context Broker quick estimate")
+    print(f"Files analysed:              {len(args.paths)}")
+    print(f"Raw source supplied:         {source_bytes:,} bytes (~{baseline_tokens:,} context tokens)")
+    print(f"Summary returned to Claude:  {summary_bytes:,} bytes (~{broker_tokens:,} context tokens)")
+    print(f"Estimated primary-context reduction: ~{saving:.0f}%")
+    print(f"Worker elapsed time:         {elapsed:.1f}s")
+    print("\nThis is a source-volume proxy, not model billing or a quality score.")
+    print("Use it to decide whether a fuller paired benchmark is worthwhile.")
+    print("\nWorker findings:\n")
+    print(result.stdout.rstrip())
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
