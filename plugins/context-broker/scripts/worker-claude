@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Zero-config worker: invokes the locally authenticated Claude CLI with Haiku.
+# Teams that require a gateway can set CONTEXT_BROKER_WORKER to their own command.
+set -euo pipefail
+request="$(cat)"
+command -v claude >/dev/null || { echo "Context Broker requires Claude Code on PATH." >&2; exit 2; }
+prompt="$(jq -r '"<task>" + .question + "</task><files>" + ([.files[] | "<file path=\\\"" + .path + "\\\">" + .content + "</file>"] | join("")) + "</files><instructions>Act only as a source analyst. Return concise bullets. Every claim must cite a path and line range. Say when the supplied files are insufficient. Do not propose edits, make decisions, or add greeting text.</instructions>"' <<<"$request")"
+answer="$(claude -p --model "${CONTEXT_BROKER_WORKER_MODEL:-haiku}" "$prompt")"
+jq -n --arg answer "$answer" --arg model "${CONTEXT_BROKER_WORKER_MODEL:-haiku}" '{answer:$answer, model:$model}'

@@ -1,0 +1,58 @@
+#!/usr/bin/env python3
+"""Send an explicit, bounded source corpus to a Context Broker worker."""
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+MAX_FILE_BYTES = int(os.environ.get("CONTEXT_BROKER_MAX_FILE_BYTES", 768_000))
+DENY_NAMES = {".env", "id_rsa", "id_ed25519", "credentials", "secrets.yml", "secrets.yaml"}
+DENY_SUFFIXES = {".pem", ".key", ".p12", ".pfx"}
+
+
+def safe_file(value: str) -> Path:
+    path = Path(value)
+    if not path.is_file():
+        raise ValueError(f"not a regular file: {value}")
+    if path.name in DENY_NAMES or path.suffix.lower() in DENY_SUFFIXES:
+        raise ValueError(f"refusing potentially sensitive file: {value}")
+    if path.stat().st_size > MAX_FILE_BYTES:
+        raise ValueError(f"file exceeds {MAX_FILE_BYTES} byte ceiling: {value}")
+    raw = path.read_bytes()
+    if b"\0" in raw:
+        raise ValueError(f"refusing binary file: {value}")
+    return path
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--question", required=True)
+    parser.add_argument("--paths", nargs="+", required=True)
+    args = parser.parse_args()
+    try:
+        files = [{"path": str(safe_file(p)), "content": safe_file(p).read_text(encoding="utf-8")} for p in args.paths]
+    except (ValueError, UnicodeDecodeError) as exc:
+        print(f"repo-read: {exc}", file=sys.stderr)
+        return 2
+    worker = os.environ.get("CONTEXT_BROKER_WORKER", f"{os.environ['CLAUDE_PLUGIN_ROOT']}/scripts/worker-claude")
+    result = subprocess.run(worker, shell=True, input=json.dumps({"question": args.question, "files": files}), text=True, capture_output=True)
+    if result.returncode:
+        print(result.stderr.strip() or "worker failed", file=sys.stderr)
+        return result.returncode
+    try:
+        response = json.loads(result.stdout)
+        print(response["answer"])
+    except (json.JSONDecodeError, KeyError) as exc:
+        print(f"repo-read: worker returned invalid JSON: {exc}", file=sys.stderr)
+        return 2
+    if response.get("usage"):
+        print(json.dumps({"context_broker_usage": response["usage"], "model": response.get("model")}), file=sys.stderr)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

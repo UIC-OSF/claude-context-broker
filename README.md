@@ -20,6 +20,23 @@ through its own gateway without putting credentials in this repository.
 
 ## Quick start
 
+### Claude Code plugin (recommended)
+
+From Claude Code, add the marketplace and install once:
+
+```bash
+claude plugin marketplace add UIC-OSF/claude-context-broker
+claude plugin install context-broker@claude-context-broker
+```
+
+Start a new Claude Code session and use `/context-broker:setup` to validate the
+zero-config worker. From then on, large-file exploration is automatic: the
+plugin hook redirects broad reads to a lower-cost Claude worker, while Claude
+Code retains judgment, targeted reads, edits, and review. Teams can replace the
+default worker with an approved gateway through `CONTEXT_BROKER_WORKER`.
+
+### Repository installation
+
 ```bash
 git clone <this-repository>
 cd claude-context-broker
@@ -60,6 +77,21 @@ Claude: reads only the cited ranges, decides whether a gap exists, edits, tests
 The broker should not be used to decide architecture, security policy, or a
 debugging root cause. It identifies candidate evidence; Claude and a human
 remain responsible for the decision.
+
+## Origins and attribution
+
+Claude Context Broker is based on the architecture described in Spotify's
+public [Shunt plugin](https://github.com/spotify/portal-ai-plugins/tree/main/plugins/shunt)
+and its accompanying engineering post, [âPortal by Spotify cut my Claude Code
+token usage by 90%â](https://engineering.atspotify.com/2026/9/portal-by-spotify-cut-my-claude-code-token-usage-by-90/).
+
+The shared idea is deliberately small: enforce a boundary around broad,
+I/O-heavy file reading; delegate that mechanical work to a cheaper worker; then
+keep targeted reads, judgment, edits, testing, and final review with the main
+Claude Code session. Spotify's version routes through Portal and AiKA modes.
+This project is an independent implementation that instead offers a
+zero-config local Claude worker or a configurable institutionally approved
+worker command.
 
 ## Configuration
 

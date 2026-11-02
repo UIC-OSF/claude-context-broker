@@ -1,0 +1,22 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "claude-context-broker",
+  "version": "0.2.0",
+  "description": "A lightweight Claude Code marketplace for bounded large-file exploration.",
+  "owner": {
+    "name": "UIC Open Source Foundation"
+  },
+  "plugins": [
+    {
+      "name": "context-broker",
+      "description": "Routes large-file exploration through a bounded worker and keeps Claude Code focused on judgment and edits.",
+      "version": "0.2.0",
+      "author": {
+        "name": "UIC Open Source Foundation"
+      },
+      "repository": "https://github.com/UIC-OSF/claude-context-broker",
+      "source": "./plugins/context-broker",
+      "category": "developer-tools"
+    }
+  ]
+}
