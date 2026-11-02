@@ -91,6 +91,9 @@ def main() -> int:
     parser.add_argument("--paths", nargs="+", required=True)
     parser.add_argument("--dry-run", action="store_true", help="print the request that would be sent; do not invoke a worker")
     args = parser.parse_args()
+    if os.environ.get("CONTEXT_BROKER_DISABLE", "") not in ("", "0", "false"):
+        print("repo-read: Context Broker is disabled (CONTEXT_BROKER_DISABLE is set); read the files directly", file=sys.stderr)
+        return 3
     root = project_root()
     try:
         loaded = [safe_file(p, root) for p in dict.fromkeys(args.paths)]
@@ -132,7 +135,15 @@ def main() -> int:
     print("----- end worker output -----")
     meta = {k: response.get(k) for k in ("model", "usage", "total_cost_usd") if response.get(k) is not None}
     if meta:
-        print(json.dumps({"context_broker_worker": meta}), file=sys.stderr)
+        record = json.dumps({"context_broker_worker": meta})
+        print(record, file=sys.stderr)
+        # Inside a Claude Code session stderr goes to the model, not to the parent
+        # process, so the benchmark harness asks for a usage log file as well.
+        log_path = os.environ.get("CONTEXT_BROKER_USAGE_LOG")
+        if log_path:
+            Path(log_path).parent.mkdir(parents=True, exist_ok=True)
+            with open(log_path, "a", encoding="utf-8") as log:
+                log.write(record + "\n")
     return 0
 
 

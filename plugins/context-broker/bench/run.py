@@ -62,9 +62,9 @@ def usage_from(stdout: str) -> dict:
     return usage
 
 
-def worker_usage_from(stderr: str) -> list:
+def worker_usage_from(text: str) -> list:
     found = []
-    for line in stderr.splitlines():
+    for line in text.splitlines():
         try:
             record = json.loads(line)
         except json.JSONDecodeError:
@@ -129,12 +129,17 @@ def main() -> int:
             for repetition in range(1, args.runs + 1):
                 for reset in task.get("reset", []):
                     subprocess.run(reset, shell=True, check=True)
+                # repo-read runs inside the session, so its stderr never reaches us;
+                # it appends worker usage to this file instead.
+                usage_log = results.parent / "worker-usage" / f"{task['id']}-{args.condition}-{repetition}.jsonl"
+                usage_log.parent.mkdir(parents=True, exist_ok=True)
+                usage_log.unlink(missing_ok=True)
                 began = time.monotonic()
-                completed = subprocess.run(command, shell=True, text=True, capture_output=True, env=env)
+                completed = subprocess.run(command, shell=True, text=True, capture_output=True, env={**env, "CONTEXT_BROKER_USAGE_LOG": str(usage_log)})
                 elapsed = round(time.monotonic() - began, 3)
                 checks = [subprocess.run(c, shell=True, capture_output=True).returncode == 0 for c in task.get("checks", [])]
                 usage = usage_from(completed.stdout)
-                workers = worker_usage_from(completed.stderr)
+                workers = worker_usage_from(usage_log.read_text() if usage_log.exists() else "") or worker_usage_from(completed.stderr)
                 record = {
                     "timestamp": datetime.now(timezone.utc).isoformat(),
                     "task": task["id"], "condition": args.condition, "run": repetition,

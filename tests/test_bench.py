@@ -9,7 +9,7 @@ BENCH = Path(__file__).parents[1] / "plugins" / "context-broker" / "bench"
 STUB = r'''#!/usr/bin/env bash
 # Stub claude: echo a JSON result; emit a worker usage line on stderr in broker mode.
 if [[ "${CONTEXT_BROKER_DISABLE:-0}" == "0" ]]; then
-  echo '{"context_broker_worker":{"model":"haiku","total_cost_usd":0.002}}' >&2
+  echo '{"context_broker_worker":{"model":"haiku","total_cost_usd":0.002}}' >> "$CONTEXT_BROKER_USAGE_LOG"
 fi
 printf '%s' '{"result":"done","usage":{"input_tokens":100,"cache_read_input_tokens":50,"output_tokens":20},"total_cost_usd":0.01,"num_turns":3}'
 '''
