@@ -87,8 +87,8 @@ remain responsible for the decision.
 
 Claude Context Broker is based on the architecture described in Spotify's
 public [Shunt plugin](https://github.com/spotify/portal-ai-plugins/tree/main/plugins/shunt)
-and its accompanying engineering post, [âPortal by Spotify cut my Claude Code
-token usage by 90%â](https://engineering.atspotify.com/2026/9/portal-by-spotify-cut-my-claude-code-token-usage-by-90/).
+and its accompanying engineering post, ["Portal by Spotify cut my Claude Code
+token usage by 90%"](https://engineering.atspotify.com/2026/9/portal-by-spotify-cut-my-claude-code-token-usage-by-90/).
 
 The shared idea is deliberately small: enforce a boundary around broad,
 I/O-heavy file reading; delegate that mechanical work to a cheaper worker; then
@@ -119,7 +119,7 @@ files are rejected by `repo-read` by default.
 
 Use `bench/` before enforcing the hook team-wide.
 
-1. Choose 10â20 representative tasks that require understanding several files.
+1. Choose 10-20 representative tasks that require understanding several files.
    Include bug investigation, a small feature, a test addition, and one task
    where the broker should *not* be used.
 2. Give each task an acceptance test and a short hidden rubric with expected
@@ -157,7 +157,7 @@ Request:
 Response:
 
 ```json
-{"answer":"- src/auth.ts:42-79 â requireRole()...","model":"approved-cheap-model","usage":{"input_tokens":123,"output_tokens":45}}
+{"answer":"- src/auth.ts:42-79 - requireRole()...","model":"approved-cheap-model","usage":{"input_tokens":123,"output_tokens":45}}
 ```
 
 The answer should cite a path and line range for every finding and explicitly
