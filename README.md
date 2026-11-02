@@ -21,9 +21,11 @@ through its own gateway without putting credentials in this repository.
 ## Quick start
 
 ```bash
-git clone https://github.com/UIC-OSF/claude-context-broker.git
+git clone <this-repository>
 cd claude-context-broker
 python3 -m unittest discover -s tests -v
+
+# Install into another repository (review the generated settings first).
 ./install.sh /path/to/your/project
 ```
 
@@ -80,7 +82,7 @@ files are rejected by `repo-read` by default.
 
 Use `bench/` before enforcing the hook team-wide.
 
-1. Choose 10–20 representative tasks that require understanding several files.
+1. Choose 10â20 representative tasks that require understanding several files.
    Include bug investigation, a small feature, a test addition, and one task
    where the broker should *not* be used.
 2. Give each task an acceptance test and a short hidden rubric with expected
@@ -101,6 +103,7 @@ Example:
 
 ```bash
 cp bench/tasks.example.json bench/tasks.json
+# Edit commands to match your Claude Code installation and test suite.
 python3 bench/run.py --tasks bench/tasks.json --condition baseline --runs 5
 python3 bench/run.py --tasks bench/tasks.json --condition broker --runs 5
 python3 bench/score.py --results bench/results.jsonl
@@ -117,7 +120,7 @@ Request:
 Response:
 
 ```json
-{"answer":"- src/auth.ts:42-79 — requireRole()...","model":"approved-cheap-model","usage":{"input_tokens":123,"output_tokens":45}}
+{"answer":"- src/auth.ts:42-79 â requireRole()...","model":"approved-cheap-model","usage":{"input_tokens":123,"output_tokens":45}}
 ```
 
 The answer should cite a path and line range for every finding and explicitly
