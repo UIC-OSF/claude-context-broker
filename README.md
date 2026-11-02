@@ -215,7 +215,8 @@ Set these in the `env` block of `.claude/settings.json` (project) or
 | `CONTEXT_BROKER_MAX_TOTAL_BYTES` | `1000000` | Largest total request `repo-read` will send |
 | `CONTEXT_BROKER_WORKER` | plugin's `worker-claude` | Worker command |
 | `CONTEXT_BROKER_WORKER_MODEL` | `haiku` | Model for the default worker |
-| `CONTEXT_BROKER_DISABLE` | unset | `1` turns the hooks off; the benchmark uses this for its baseline |
+| `CONTEXT_BROKER_DISABLE` | unset | `1` turns the hooks off and makes `repo-read` refuse to run; the benchmark uses this for its baseline |
+| `CONTEXT_BROKER_USAGE_LOG` | unset | File `repo-read` appends worker usage records to; set per run by the benchmark |
 
 ## Repository layout
 

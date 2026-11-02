@@ -100,6 +100,19 @@ class RepoReadTests(unittest.TestCase):
         meta = json.loads(result.stderr.strip().splitlines()[-1])["context_broker_worker"]
         self.assertEqual(meta["total_cost_usd"], 0.001)
 
+    def test_disabled_refuses_to_run(self):
+        self.write("example.py", "x = 1\n")
+        result = run(REPO_READ + ["--question", "q", "--paths", "example.py", "--dry-run"], self.root, CONTEXT_BROKER_DISABLE="1")
+        self.assertEqual(result.returncode, 3)
+        self.assertIn("disabled", result.stderr)
+
+    def test_usage_log_written_when_requested(self):
+        self.write("example.py", "x = 1\n")
+        log = self.root / "usage.jsonl"
+        result = run(REPO_READ + ["--question", "q", "--paths", "example.py"], self.root, CONTEXT_BROKER_WORKER=ECHO_WORKER, CONTEXT_BROKER_USAGE_LOG=str(log))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(json.loads(log.read_text())["context_broker_worker"]["total_cost_usd"], 0.001)
+
     def test_works_without_claude_plugin_root(self):
         self.write("example.py", "x = 1\n")
         env = {k: v for k, v in os.environ.items() if k != "CLAUDE_PLUGIN_ROOT"}
