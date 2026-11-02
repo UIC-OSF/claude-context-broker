@@ -81,7 +81,9 @@ def build_command(task: dict, condition: str, claude: str) -> str:
     prompt = task.get(f"{condition}_prompt") or task["prompt"]
     if condition == "broker" and not task.get("broker_prompt") and task.get("add_broker_hint", True):
         prompt += BROKER_HINT
-    parts = [claude, "-p", "--output-format", "json", "--max-turns", str(task.get("max_turns", 20))]
+    # The prompt goes right after -p: --allowedTools is variadic and would swallow
+    # a trailing positional. stdin is /dev/null so claude does not wait on it.
+    parts = [claude, "-p", prompt, "--output-format", "json", "--max-turns", str(task.get("max_turns", 20))]
     if task.get("model"):
         parts += ["--model", task["model"]]
     if task.get("permission_mode"):
@@ -95,8 +97,7 @@ def build_command(task: dict, condition: str, claude: str) -> str:
         allowed.append(f"Bash({PLUGIN_ROOT}/scripts/repo-read:*)")
     if allowed:
         parts += ["--allowedTools", ",".join(allowed)]
-    parts.append(prompt)
-    return " ".join(shlex.quote(p) for p in parts)
+    return " ".join(shlex.quote(p) for p in parts) + " < /dev/null"
 
 
 def main() -> int:
@@ -107,6 +108,7 @@ def main() -> int:
     parser.add_argument("--runs", type=int, default=3)
     parser.add_argument("--results", default=str(DEFAULT_RESULTS))
     parser.add_argument("--claude", default="claude", help="claude executable (tests point this at a stub)")
+    parser.add_argument("--only", help="comma-separated task ids to run (default: all)")
     args = parser.parse_args()
 
     tasks_path = Path(args.tasks)
@@ -124,6 +126,12 @@ def main() -> int:
         print(f"no tasks file at {tasks_path}; run with --init first", file=sys.stderr)
         return 1
     tasks = json.loads(tasks_path.read_text())
+    if args.only:
+        wanted = set(args.only.split(","))
+        tasks = [t for t in tasks if t["id"] in wanted]
+        if not tasks:
+            print(f"no tasks matched --only {args.only}", file=sys.stderr)
+            return 1
     unfilled = [t["id"] for t in tasks if "REPLACE ME" in json.dumps(t)]
     if unfilled:
         print(f"tasks still contain REPLACE ME placeholders: {', '.join(unfilled)}", file=sys.stderr)

@@ -61,6 +61,8 @@ class BenchTests(unittest.TestCase):
         self.assertIn("--allowedTools", cmd)
         self.assertIn("scripts/repo-read:*", cmd)
         self.assertIn("Bash(npm test:*)", cmd)
+        self.assertLess(cmd.index("'p"), cmd.index("--allowedTools"), "prompt must precede the variadic --allowedTools")
+        self.assertTrue(cmd.endswith("< /dev/null"))
         cmd = run.build_command({"id": "t", "prompt": "p", "permission_mode": "bypassPermissions"}, "broker", "claude")
         self.assertNotIn("--allowedTools", cmd)
 
