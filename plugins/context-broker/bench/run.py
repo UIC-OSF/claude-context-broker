@@ -29,6 +29,7 @@ from pathlib import Path
 BENCH_DIR = Path(".context-broker") / "bench"
 DEFAULT_TASKS = BENCH_DIR / "tasks.json"
 DEFAULT_RESULTS = BENCH_DIR / "results.jsonl"
+PLUGIN_ROOT = Path(os.environ.get("CLAUDE_PLUGIN_ROOT") or Path(__file__).resolve().parents[1])
 BROKER_HINT = " For broad exploration of large files use the context-broker bulk-reader skill, then verify consequential findings with bounded reads."
 
 EXAMPLE_TASKS = [
@@ -85,6 +86,15 @@ def build_command(task: dict, condition: str, claude: str) -> str:
         parts += ["--model", task["model"]]
     if task.get("permission_mode"):
         parts += ["--permission-mode", task["permission_mode"]]
+    # A non-interactive session cannot answer a permission prompt, so unless the
+    # task bypasses permissions the broker command must be pre-approved or the
+    # "broker" condition silently never runs the broker. Allow it in both
+    # conditions for symmetry; in the baseline repo-read refuses to run anyway.
+    allowed = list(task.get("allowed_tools", []))
+    if task.get("permission_mode") != "bypassPermissions":
+        allowed.append(f"Bash({PLUGIN_ROOT}/scripts/repo-read:*)")
+    if allowed:
+        parts += ["--allowedTools", ",".join(allowed)]
     parts.append(prompt)
     return " ".join(shlex.quote(p) for p in parts)
 
