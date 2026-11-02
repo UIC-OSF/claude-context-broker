@@ -127,8 +127,10 @@ Be clear-eyed about this before relying on it.
   interpreter, the Grep tool, subagents, and MCP file tools. If a hook crashes
   it lets the read through. The benchmark exists because the only way to know
   whether Claude actually chooses the broker is to measure it.
-- **The worker is a model.** Its line numbers can be off by a few; the skill
-  tells Claude to verify before editing.
+- **The worker is a model.** `repo-read` prefixes every line with its number
+  so the worker reads citations instead of counting (without that, citations
+  drifted by 10-25 lines on files over 1,000 lines). Numbers are now usually
+  exact, but the skill still tells Claude to verify before editing.
 - **Zero-config mode spends your Claude quota.** The default worker is a Haiku
   call on your own account. On a flat subscription that may not save money, only
   context. The benchmark reports worker cost so you can see it.
@@ -158,9 +160,13 @@ Set `CONTEXT_BROKER_WORKER` to any command. It receives this on stdin:
 
 ```json
 {"question": "Where is authorization checked?",
- "files": [{"path": "src/auth.ts", "content": "..."}],
- "nonce": "a1b2c3d4e5f60718"}
+ "files": [{"path": "src/auth.ts", "content": "  1| import ...\n  2| ...", "lines": 312}],
+ "nonce": "a1b2c3d4e5f60718",
+ "line_numbered": true}
 ```
+
+`content` has every line prefixed with its 1-based number and a pipe. Tell your
+model to cite those numbers rather than count lines.
 
 and must write this on stdout:
 

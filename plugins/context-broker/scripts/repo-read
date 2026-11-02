@@ -4,8 +4,12 @@
 Containment: every path must resolve inside the project root (CLAUDE_PROJECT_DIR,
 else the current directory). Files ignored by git, matching secret-like names,
 containing secret-like content, binary, or oversized are refused. There is a
-per-file and an aggregate byte ceiling. Worker output is returned inside a
-clearly delimited block and must be treated as untrusted model output.
+per-file and an aggregate byte ceiling (both measured on the raw source). Each
+line sent to the worker is prefixed with its 1-based line number and a pipe
+("  42| ...") so the worker reads citations off the text instead of counting;
+without this, cited line numbers drift by 10-25 lines on long files. Worker
+output is returned inside a clearly delimited block and must be treated as
+untrusted model output.
 """
 from __future__ import annotations
 
@@ -37,6 +41,12 @@ SECRET_CONTENT = re.compile(
     rb"|xox[abprs]-[A-Za-z0-9-]{10,}"
     rb"|(?i:(?:api[_-]?key|secret[_-]?key|client[_-]?secret|password|passwd|auth[_-]?token|access[_-]?token)\s*[:=]\s*['\"][^'\"\s]{12,}['\"])"
 )
+
+
+def number_lines(text: str) -> str:
+    lines = text.splitlines()
+    width = len(str(len(lines))) if lines else 1
+    return "\n".join(f"{i:>{width}}| {line}" for i, line in enumerate(lines, start=1))
 
 
 def project_root() -> Path:
@@ -90,12 +100,12 @@ def main() -> int:
         total = sum(len(raw) for _, raw in loaded)
         if total > MAX_TOTAL_BYTES:
             raise ValueError(f"request totals {total} bytes, over the {MAX_TOTAL_BYTES} byte aggregate ceiling; ask a narrower question")
-        files = [{"path": str(p.relative_to(root)), "content": raw.decode("utf-8")} for p, raw in loaded]
+        files = [{"path": str(p.relative_to(root)), "content": number_lines(raw.decode("utf-8")), "lines": raw.count(b"\n") + (0 if raw.endswith(b"\n") or not raw else 1)} for p, raw in loaded]
     except (ValueError, UnicodeDecodeError) as exc:
         print(f"repo-read: {exc}", file=sys.stderr)
         return 2
 
-    request = {"question": args.question, "files": files, "nonce": secrets.token_hex(8)}
+    request = {"question": args.question, "files": files, "nonce": secrets.token_hex(8), "line_numbered": True}
     if args.dry_run:
         print(json.dumps({"request": request, "bytes": sum(len(f["content"].encode()) for f in files)}, indent=2))
         return 0
