@@ -36,14 +36,14 @@ EXAMPLE_TASKS = [
         "id": "authorization-map",
         "prompt": "Trace authorization for course import. Identify the entry point, the checks, and any missing role check. Do not edit files.",
         "max_turns": 12,
-        "reset": ["git checkout -- . && git clean -fdq"],
+        "reset": ["git checkout -- . && git clean -fdq -e .context-broker -e .claude"],
         "checks": ["git diff --quiet && test -z \"$(git status --porcelain)\""],
     },
     {
         "id": "small-fix",
         "prompt": "REPLACE ME: a small, well-specified change with a test that proves it, e.g. 'Make X return Y when Z; run the test suite.'",
         "max_turns": 25,
-        "reset": ["git checkout -- . && git clean -fdq"],
+        "reset": ["git checkout -- . && git clean -fdq -e .context-broker -e .claude"],
         "checks": ["REPLACE ME: a command that exits 0 only if the change is correct, e.g. 'npm test -- --grep X'"],
     },
 ]
