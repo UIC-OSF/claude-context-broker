@@ -54,6 +54,16 @@ class BenchTests(unittest.TestCase):
         self.assertIn("t1\tbroker\t2\t100%", score.stdout)
         self.assertIn("0.0120", score.stdout)  # 0.01 primary + 0.002 worker
 
+    def test_broker_command_is_preapproved_unless_bypassing(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("run", BENCH / "run.py"); run = importlib.util.module_from_spec(spec); spec.loader.exec_module(run)
+        cmd = run.build_command({"id": "t", "prompt": "p", "permission_mode": "acceptEdits", "allowed_tools": ["Bash(npm test:*)"]}, "broker", "claude")
+        self.assertIn("--allowedTools", cmd)
+        self.assertIn("scripts/repo-read:*", cmd)
+        self.assertIn("Bash(npm test:*)", cmd)
+        cmd = run.build_command({"id": "t", "prompt": "p", "permission_mode": "bypassPermissions"}, "broker", "claude")
+        self.assertNotIn("--allowedTools", cmd)
+
     def test_failed_check_recorded(self):
         tasks = self.root / "tasks.json"
         tasks.write_text(json.dumps([{"id": "t1", "prompt": "do it", "checks": ["false"]}]))
